@@ -2,7 +2,7 @@
 
 ## When Two Service Meshes Meet
 
-In the evolving landscape of Kubernetes networking, the Gateway API represents the future of ingress management, while Istio Service Mesh continues to provide robust service-to-service communication. But what happens when you need to integrate Kubernetes's native Gateway API implementation with a service mesh? This blog post explores a real-world challenge we encountered and the comprehensive solution we developed.
+In the evolving landscape of Kubernetes networking, the Gateway API represents the future of ingress management, while Istio Service Mesh continues to provide robust service-to-service communication. But what happens when you need to integrate Kubernetes's native Gateway API implementation with a service mesh? In this unofficial write-up we share a real-world challenge we hit and the workaround we prototyped.
 
 >
 > **Quick Navigation**: If you already have OpenShift Service Mesh and Gateway API configured, you can skip directly to: 
