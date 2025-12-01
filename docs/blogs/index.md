@@ -398,6 +398,8 @@ The diagram illustrates the core problem:
 
 The solution involves establishing a common trust root by configuring custom CA certificates for both meshes. We'll create a single root CA and then generate separate intermediate CAs for each mesh, all signed by the same root.
 
+> **Note**: The shared-root approach shown here is a pragmatic workaround for the current state of the technology. For production deployments requiring fine-grained trust boundaries between separate PKI hierarchies, the Gateway API's `BackendTLSPolicy` would be the proper solution—allowing the gateway to explicitly specify which CA to trust for backend connections. However, `BackendTLSPolicy` is not yet available in OpenShift's Gateway API implementation. Until then, the shared-root approach provides a working solution for mTLS communication between Gateway API and Service Mesh workloads.
+
 ```mermaid
 graph TB
     subgraph "PKI Hierarchy - Solution"
