@@ -1,0 +1,46 @@
+apiVersion: kiali.io/v1alpha1
+kind: Kiali
+metadata:
+  name: kiali
+  namespace: istio-system
+spec:
+  deployment:
+    cluster_wide_access: true
+    discovery_selectors:
+      default:
+        # Namespaces in the Istio mesh
+        - matchLabels:
+            istio-discovery: default
+        # OpenShift Gateway API namespace
+        - matchExpressions:
+            - key: kubernetes.io/metadata.name
+              operator: In
+              values:
+                - openshift-ingress
+  
+  external_services:
+    grafana:
+      enabled: false
+    
+    prometheus:
+      auth:
+        type: bearer
+        use_kiali_token: true
+      thanos_proxy:
+        enabled: true
+      url: https://thanos-querier.openshift-monitoring.svc.cluster.local:9091
+    
+    tracing:
+      enabled: false
+    
+    istio:
+      gateway_api_classes:
+        - name: Istio
+          class_name: istio
+        - name: OpenShift Default
+          class_name: openshift-default
+  
+  server:
+    write_timeout: 60
+
+

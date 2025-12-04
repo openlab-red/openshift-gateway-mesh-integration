@@ -69,6 +69,8 @@ Apply the operators:
 oc get csv -n openshift-operators
 ```
 
+> **Tip**: All manifests from this guide are also available as Kustomize resources in the [`kustomize/`](../../kustomize/) directory of this repository, with platform operators separated from instances.
+
 ### Installing OpenShift Service Mesh
 
 **Important**: The installation order matters. We need to install the CNI component first, then the control plane.
@@ -388,7 +390,10 @@ graph TB
     class GatewayCA,MeshCA errorLine
 ```
 
+*Figure 1: Two Meshes, Two Certificate Authorities Problem*
+
 The diagram illustrates the core problem:
+
 - **Two separate meshes**: OpenShift Gateway API mesh and OpenShift Service Mesh (OSSM)
 - **Two different CAs**: Each mesh generates its own self-signed Certificate Authority
  - **No trust relationship**: Neither CA trusts certificates signed by the other
@@ -437,13 +442,17 @@ graph TB
     class Gateway2,ProductPage2 successLine
 ```
 
+*Figure 2: Unified Certificate Authority Solution*
+
 With this unified CA architecture:
+
 - **Single Root CA**: Acts as the common trust anchor for both meshes
 - **Separate Intermediate CAs**: Each mesh maintains its own intermediate CA, but both are signed by the same root
 - **Trust Chain Established**: Both meshes trust the common root, therefore they trust each other's certificates
 - **mTLS Success**: Secure communication between Gateway API and Service Mesh workloads
 
 We'll cover two approaches:
+
 1. **Manual Approach**: Using OpenSSL commands for full control and understanding
 2. **cert-manager Approach**: Automated certificate management (recommended for production)
 
@@ -529,6 +538,7 @@ cp root-cert.pem istio/
 ```
 
 This creates in the `istio` directory:
+
 - `ca-cert.pem`: Service Mesh CA Intermediate certificate
 - `ca-key.pem`: Service Mesh CA Intermediate private key
 - `cert-chain.pem`: Certificate chain (Service Mesh CA + root)
@@ -602,6 +612,7 @@ cp root-cert.pem gateway/
 ```
 
 This creates in the `gateway` directory:
+
 - `ca-cert.pem`: OpenShift Gateway CA Intermediate certificate
 - `ca-key.pem`: OpenShift Gateway CA Intermediate private key
 - `cert-chain.pem`: Certificate chain (gateway + root)
@@ -821,16 +832,24 @@ oc get secret cacerts -n istio-system -o jsonpath='{.data.ca\.crt}' | base64 -d 
 
 ## Testing and Verification
 
+After configuring the unified certificate authority with either the manual or cert-manager approach, it's important to verify that the integration is working correctly. This section walks through testing the end-to-end traffic flow and validating that both meshes are now using certificates signed by the common root CA.
+
 ### Test the Gateway API Endpoint
+
+The simplest way to verify the integration is to test the application through the Gateway API endpoint. If the unified CA configuration is correct, requests will flow from the Gateway through the mTLS-secured connection to the Service Mesh workloads without certificate errors.
 
 ```bash
 # Test the application
-curl http://bookinfo.gwapi.apps.cluster.example.com/productpage
+curl http://bookinfo.gwapi.${BASE_DOMAIN}/productpage
 
 # You should now see the Bookinfo product page HTML
 ```
 
+A successful response containing the Bookinfo product page HTML confirms that the Gateway API can establish trusted mTLS connections with the Service Mesh sidecars. If you still see certificate verification errors, double-check that both `cacerts` secrets contain certificates derived from the same root CA.
+
 ### Verify Certificate Chain
+
+To confirm that both meshes are using certificates from the unified CA hierarchy, you can inspect the certificate secrets directly. The `istioctl proxy-config secret` command shows the certificates loaded by each Envoy proxy.
 
 ```bash
 # Gateway
@@ -839,6 +858,10 @@ istioctl -n openshift-ingress proxy-config secret $(oc -n openshift-ingress get 
 # Product Page
 istioctl -n bookinfo proxy-config secret $(oc -n bookinfo get pod -lapp=productpage -o jsonpath='{.items[0].metadata.name}')
 ```
+
+Both outputs should show certificates with a `ROOTCA` entry that matches your custom root certificate. This confirms the proxies have loaded the new CA hierarchy.
+
+For deeper inspection, you can establish a TLS connection to a backend service and examine the certificate chain directly. This verifies that workload certificates are being issued by your custom intermediate CA:
 
 ```bash
 # Get a pod
@@ -853,6 +876,8 @@ oc exec $POD -n bookinfo -c istio-proxy -- \
 # Issuer: C=CH, O=SM, CN=SM Service Mesh Intermediate CA
 # Subject: CN=reviews.bookinfo.svc.cluster.local
 ```
+
+The output confirms that the `reviews` service certificate is issued by your custom Service Mesh Intermediate CA, rather than Istio's default self-signed CA. When both the Gateway and Service Mesh workloads share a common root CA, mTLS handshakes succeed and traffic flows securely between the two mesh implementations.
 
 ## Conclusion
 

@@ -1,0 +1,29 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: openshift-ingress
+resources:
+  - gateway.yaml
+  - domain-config.yaml
+components:
+  - ../../components/istio-monitoring
+patches:
+  - target:
+      kind: ServiceMonitor
+      name: istiod-monitor
+    patch: |-
+      - op: replace
+        path: /spec/selector/matchLabels/istio
+        value: istiod
+
+replacements:
+  - source:
+      kind: ConfigMap
+      name: domain-config
+      fieldPath: data.GATEWAY_HOSTNAME
+    targets:
+      - select:
+          kind: Gateway
+          name: mesh-gateway
+        fieldPaths:
+          - spec.listeners.0.hostname
+

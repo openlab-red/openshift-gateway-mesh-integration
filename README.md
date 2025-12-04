@@ -9,6 +9,7 @@
 ## 📖 Full Tutorial
 
 **[Read the complete blog post →](docs/blogs/index.md)**
+**[Monitoring with Kiali →](docs/blogs/monitoring.md)**
 
 ## 🤝 Contributing
 Contributions are welcome! Please feel free to submit a Pull Request.

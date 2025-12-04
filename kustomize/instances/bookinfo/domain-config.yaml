@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: domain-config
+  namespace: bookinfo
+  annotations:
+    config.kubernetes.io/local-config: "true"
+data:
+  # Update to your cluster's ingress domain
+  # Get base domain with: oc get ingresses.config.openshift.io cluster -o jsonpath='{.spec.domain}'
+  BOOKINFO_HOSTNAME: bookinfo.gwapi.apps.cluster-ndb5l.ndb5l.sandbox500.opentlc.com
+
